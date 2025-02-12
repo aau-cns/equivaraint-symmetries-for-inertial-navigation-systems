@@ -19,15 +19,8 @@ from Filters.Calibrated.LIEKF import LIEKF
 from Filters.Calibrated.TF_IEKF import TF_IEKF
 from Filters.Calibrated.TF_LIEKF import TF_LIEKF
 from Filters.Calibrated.MEKF import MEKF
-# from Filters.Calibrated.UKF import UKF
 from Filters.Calibrated.SE23_se3_EqF import SE23_se3_EqF
 from Filters.Calibrated.SE23_se23_EqF import SE23_se23_EqF
-from Filters.Calibration.SE3_se3_R3_cal_EqF import SE3_se3_R3_cal_EqF
-from Filters.Calibration.cal_IEKF import cal_IEKF
-from Filters.Calibration.cal_TF_IEKF import cal_TF_IEKF
-from Filters.Calibration.SE23_se23_cal_EqF import SE23_se23_cal_EqF
-from Filters.Calibration.SE23_se3_cal_EqF import SE23_se3_cal_EqF
-from Filters.Calibration.cal_MEKF import cal_MEKF
 from Utils.utils import *
 from scipy.spatial.transform import Rotation
 from scipy.io import savemat
@@ -45,12 +38,6 @@ parser.add_argument("--ctnew", action='store_true', help="Run SE23_se3 EqF.")
 parser.add_argument("--iekf", action='store_true', help="Run IEKF and LIEKF.")
 parser.add_argument("--tfiekf", action='store_true', help="Run Two_Frames IEKF and LIEKF.")
 parser.add_argument("--mekf", action='store_true', help="Run MEKF.")
-parser.add_argument("--ct_cal", action='store_true', help="Run SE3_se3_R3_cal EqF.")
-parser.add_argument("--ctex_cal", action='store_true', help="Run SE23_se23_cal EqF.")
-parser.add_argument("--ctnew_cal", action='store_true', help="Run SE23_se3_cal EqF.")
-parser.add_argument("--iekf_cal", action='store_true', help="Run cal_IEKF.")
-parser.add_argument("--tfiekf_cal", action='store_true', help="Run Two_Frames_cal IEKF.")
-parser.add_argument("--mekf_cal", action='store_true', help="Run cal_MEKF.")
 parser.add_argument("--correctinit", action='store_true', help="Initialize filter with ground-truth.")
 parser.add_argument("--propagationonly", action='store_true', help="Avoid filter updates")
 parser.add_argument("--curvature_correction", action='store_true', help="Apply covariance curvature correction")
@@ -698,10 +685,8 @@ if __name__ == '__main__':
         initial_vel_noise = 0.1
         initial_pos_noise = 1.0
         initial_bias_noise = 0.01
-        # omega_noise = 1.5e-3 * math.pi / 180
-        # acc_noise = 1.5e-2
-        omega_noise = 1.0e-3 * math.pi / 180  # Automatica
-        acc_noise = 1.2e-2  # Automatica
+        omega_noise = 1.0e-3 * math.pi / 180
+        acc_noise = 1.2e-2
         tau_noise = 1.0e-4
         virtual_noise = 1e-9
         meas_noise = 0.2
@@ -712,7 +697,7 @@ if __name__ == '__main__':
     if args.correctinit:
         warnings.warn("xi_0 is different from identity! Hardcoded matrices works with xi_0 = identity!\n")
 
-    if (args.ct == args.iekf == args.ctex == args.ctnew == args.tfiekf == args.mekf == args.ct_cal == args.iekf_cal == args.mekf_cal == args.ctex_cal == args.ctnew_cal == args.tfiekf_cal == args.ctnew_cal_equi == False):
+    if (args.ct == args.iekf == args.ctex == args.ctnew == args.tfiekf == args.mekf == False):
         raise ValueError("Please specify which filter to be run")
 
     # Create the folder for saving results
@@ -734,19 +719,13 @@ if __name__ == '__main__':
             if not os.path.exists(result_path):
                 os.makedirs(result_path)
             else:
-                cond_1 = (os.path.exists(result_path + '/result_MEKF.mat') or not args.iekf) and \
-                         (os.path.exists(result_path + '/result_IEKF.mat') or os.path.exists(result_path + '/result_IEKF_equi.mat') or os.path.exists(result_path + '/result_LIEKF.mat') or not args.iekf) and \
-                         (os.path.exists(result_path + '/result_TF_IEKF.mat') or os.path.exists(result_path + '/result_TF_IEKF_equi.mat') or os.path.exists(result_path + '/result_TF_LIEKF.mat') or not args.tfiekf) and \
-                         (os.path.exists(result_path + '/result_SE3_se3_R3_EqF.mat') or not args.ct) and \
-                         (os.path.exists(result_path + '/result_SE23_se23_EqF.mat') or os.path.exists(result_path + '/result_SE23_se23_equi_EqF.mat') or not args.ctex) and \
-                         (os.path.exists(result_path + '/result_SE23_se3_EqF.mat') or os.path.exists(result_path + '/result_SE23_se3_equi_EqF.mat') or not args.ctnew)
-                cond_2 = (os.path.exists(result_path + '/result_cal_MEKF.mat') or not args.mekf_cal) and \
-                         (os.path.exists(result_path + '/result_cal_IEKF_equi.mat') or os.path.exists(result_path + '/result_cal_IEKF.mat') or not args.iekf_cal) and \
-                         (os.path.exists(result_path + '/result_cal_TF_IEKF_equi.mat') or os.path.exists(result_path + '/result_cal_TF_IEKF.mat') or not args.tfiekf_cal) and \
-                         (os.path.exists(result_path + '/result_SE3_se3_R3_cal_EqF.mat') or not args.ct_cal) and \
-                         (os.path.exists(result_path + '/result_SE23_se23_cal_EqF.mat') or os.path.exists(result_path + '/result_SE23_se23_cal_equi_EqF.mat') or not args.ctex_cal) and \
-                         (os.path.exists(result_path + '/result_SE23_se3_cal_EqF.mat') or os.path.exists(result_path + '/result_SE23_se3_cal_equi_EqF.mat') or not args.ctnew_cal)
-                if cond_1 or cond_2:
+                cond = (os.path.exists(result_path + '/result_MEKF.mat') or not args.iekf) and \
+                       (os.path.exists(result_path + '/result_IEKF.mat') or os.path.exists(result_path + '/result_IEKF_equi.mat') or os.path.exists(result_path + '/result_LIEKF.mat') or not args.iekf) and \
+                       (os.path.exists(result_path + '/result_TF_IEKF.mat') or os.path.exists(result_path + '/result_TF_IEKF_equi.mat') or os.path.exists(result_path + '/result_TF_LIEKF.mat') or not args.tfiekf) and \
+                       (os.path.exists(result_path + '/result_SE3_se3_R3_EqF.mat') or not args.ct) and \
+                       (os.path.exists(result_path + '/result_SE23_se23_EqF.mat') or os.path.exists(result_path + '/result_SE23_se23_equi_EqF.mat') or not args.ctex) and \
+                       (os.path.exists(result_path + '/result_SE23_se3_EqF.mat') or os.path.exists(result_path + '/result_SE23_se3_equi_EqF.mat') or not args.ctnew)
+                if cond:
                     continue
 
             if args.mekf:
@@ -763,7 +742,7 @@ if __name__ == '__main__':
                 else:
                     name = '/result_IEKF.mat'
                 with threadpool_limits(args.threads):
-                    # run_filter(IEKF, filter_args[0:-1], data, result_path + name)
+                    run_filter(IEKF, filter_args[0:-1], data, result_path + name)
                     run_filter(LIEKF, filter_args[0:-1], data, result_path + '/result_LIEKF.mat')
 
             if args.tfiekf:
@@ -774,7 +753,6 @@ if __name__ == '__main__':
                     name = '/result_TF_IEKF.mat'
                 with threadpool_limits(args.threads):
                     run_filter(TF_IEKF, filter_args[0:-1], data, result_path + name)
-                    # run_filter(TF_LIEKF, filter_args[0:-1], data, result_path + '/result_TF_LIEKF.mat')
 
             if args.ct:
                 print("\nSimulating SE3_se3_R3 EqF")
@@ -800,54 +778,6 @@ if __name__ == '__main__':
                 with threadpool_limits(args.threads):
                     run_filter(SE23_se3_EqF, filter_args, data, result_path + name)
 
-            if args.mekf_cal:
-                print("\nSimulating MEKF with calibration states")
-                name = '/result_cal_MEKF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(cal_MEKF, filter_args[0:-2], data, result_path + name)
-
-            if args.iekf_cal:
-                print("\nSimulating IEKF with calibration states")
-                if args.equivariant_output:
-                    name = '/result_cal_IEKF_equi.mat'
-                else:
-                    name = '/result_cal_IEKF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(cal_IEKF, filter_args[0:-1], data, result_path + name)
-
-            if args.tfiekf_cal:
-                print("\nSimulating Two Frames IEKF with calibration states")
-                if args.equivariant_output:
-                    name = '/result_cal_TF_IEKF_equi.mat'
-                else:
-                    name = '/result_cal_TF_IEKF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(cal_TF_IEKF, filter_args[0:-1], data, result_path + name)
-
-            if args.ct_cal:
-                print("\nSimulating SE3_se3_R3 EqF with calibration states")
-                name = '/result_SE3_se3_R3_cal_EqF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(SE3_se3_R3_cal_EqF, filter_args[0:-2] + [filter_args[-1]], data, result_path + name)
-
-            if args.ctex_cal:
-                print("\nSimulating SE23_se23 EqF with calibration states")
-                if args.equivariant_output:
-                    name = '/result_SE23_se23_cal_EqF_equi.mat'
-                else:
-                    name = '/result_SE23_se23_cal_EqF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(SE23_se23_cal_EqF, filter_args + [measure_bv], data, result_path + name)
-
-            if args.ctnew_cal:
-                print("\nSimulating SE23_se3 EqF with calibration states")
-                if args.equivariant_output:
-                    name = '/result_SE23_se3_cal_EqF_equi.mat'
-                else:
-                    name = '/result_SE23_se3_cal_EqF.mat'
-                with threadpool_limits(args.threads):
-                    run_filter(SE23_se3_cal_EqF, filter_args, data, result_path + name)
-
     else:
 
         print(f"Loading dataset: {args.data_path}\n")
@@ -862,7 +792,6 @@ if __name__ == '__main__':
             name = '/result_MEKF.mat'
             with threadpool_limits(args.threads):
                 run_filter(MEKF, filter_args[0:-2], data, args.result_path + name)
-                # run_filter(UKF, filter_args[0:-2], data, args.result_path + name)
 
         if args.iekf:
             print("\nSimulating IEKF")
@@ -871,7 +800,7 @@ if __name__ == '__main__':
             else:
                 name = '/result_IEKF.mat'
             with threadpool_limits(args.threads):
-                # run_filter(IEKF, filter_args[0:-1], data, args.result_path + name)
+                run_filter(IEKF, filter_args[0:-1], data, args.result_path + name)
                 run_filter(LIEKF, filter_args[0:-1], data, args.result_path + '/result_LIEKF.mat')
 
         if args.tfiekf:
@@ -882,7 +811,6 @@ if __name__ == '__main__':
                 name = '/result_TF_IEKF.mat'
             with threadpool_limits(args.threads):
                 run_filter(TF_IEKF, filter_args[0:-1], data, args.result_path + name)
-                # run_filter(TF_LIEKF, filter_args[0:-1], data, args.result_path + '/result_TF_LIEKF.mat')
 
         if args.ct:
             print("\nSimulating SE3_se3_R3 EqF")
@@ -907,51 +835,3 @@ if __name__ == '__main__':
                 name = '/result_SE23_se3_EqF.mat'
             with threadpool_limits(args.threads):
                 run_filter(SE23_se3_EqF, filter_args, data, args.result_path + name)
-
-        if args.mekf_cal:
-            print("\nSimulating MEKF with calibration states")
-            name = '/result_cal_MEKF.mat'
-            with threadpool_limits(args.threads):
-                run_filter(cal_MEKF, filter_args[0:-2], data, args.result_path + name)
-
-        if args.iekf_cal:
-            print("\nSimulating IEKF with calibration states")
-            if args.equivariant_output:
-                name = '/result_cal_IEKF_equi.mat'
-            else:
-                name = '/result_cal_IEKF.mat'
-            with threadpool_limits(args.threads):
-                run_filter(cal_IEKF, filter_args[0:-1], data, args.result_path + name)
-
-        if args.tfiekf_cal:
-            print("\nSimulating Two Frames IEKF with calibration states")
-            if args.equivariant_output:
-                name = '/result_cal_TF_IEKF_equi.mat'
-            else:
-                name = '/result_cal_TF_IEKF.mat'
-            with threadpool_limits(args.threads):
-                 run_filter(cal_TF_IEKF, filter_args[0:-1], data, args.result_path + name)
-
-        if args.ct_cal:
-            print("\nSimulating SE3_se3_R3 EqF with calibration states")
-            name = '/result_SE3_se3_R3_cal_EqF.mat'
-            with threadpool_limits(args.threads):
-                run_filter(SE3_se3_R3_cal_EqF, filter_args[0:-2] + [filter_args[-1]], data, args.result_path + name)
-
-        if args.ctex_cal:
-            print("\nSimulating SE23_se23 EqF with calibration states")
-            if args.equivariant_output:
-                name = '/result_SE23_se23_cal_EqF_equi.mat'
-            else:
-                name = '/result_SE23_se23_cal_EqF.mat'
-            with threadpool_limits(args.threads):
-                run_filter(SE23_se23_cal_EqF, filter_args + [measure_bv], data, args.result_path + name)
-
-        if args.ctnew_cal:
-            print("\nSimulating SE23_se3 EqF with calibration states")
-            if args.equivariant_output:
-                name = '/result_SE23_se3_cal_EqF_equi.mat'
-            else:
-                name = '/result_SE23_se3_cal_EqF.mat'
-            with threadpool_limits(args.threads):
-                run_filter(SE23_se3_cal_EqF, filter_args, data, args.result_path + name)
