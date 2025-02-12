@@ -17,6 +17,10 @@ python3 Simulation/Simulation.py Trajectories/sim <path_where_to_save_the_result
 python3 Simulation/Simulation.py Trajectories/insane <path_where_to_save_the_results> --ct --ctex --ctnew --iekf --tfiekf --mekf --equivariant_output --insane
 ```
 
-#### Plot the results:
+#### Plot the results of a single run:
 Run matlab's script `Evaluation/scripts/plotFilters.m` to plot the results
 
+#### Plot the results of multiple runs:
+Run matlab's script `Evaluation/scripts/averageRmse.m` to plot the results
+
+Note that these scripts have not been cleaned up and are considered "research code"
